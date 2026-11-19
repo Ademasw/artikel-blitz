@@ -1,4 +1,7 @@
 import type { Article, Level, RuleType, WordItem } from '../types/game';
+import { DAS_EXTRA } from './extra/das';
+import { DER_EXTRA } from './extra/der';
+import { DIE_EXTRA } from './extra/die';
 
 type Extra = Partial<Pick<WordItem, 'id' | 'highlight' | 'ruleHint' | 'alwaysShowTranslation'>>;
 
@@ -412,4 +415,52 @@ const DAS: WordItem[] = [
   w('das', 'Werkzeug', 'Werkzeuge', 'инструмент (рабочий)', 'B2', 'none'),
 ];
 
-export const WORDS: readonly WordItem[] = [...DER, ...DIE, ...DAS];
+const LEVELS: readonly Level[] = ['A1', 'A2', 'B1', 'B2'];
+
+/**
+ * Разбор компактного списка (формат описан в ./extra/der.ts).
+ * Ошибка формата бросает исключение при загрузке модуля, поэтому её сразу ловят тесты и сборка.
+ */
+export function parseCompact(article: Article, text: string): WordItem[] {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const [word, plural, translation, level, tag, ...rest] = line.split('|').map((c) => c.trim());
+      if (!word || !plural || !translation || !level || rest.length > 0 || !LEVELS.includes(level as Level)) {
+        throw new Error(`Словарь: неверная строка «${line}»`);
+      }
+      const pl = plural === '-' ? null : plural;
+      const lvl = level as Level;
+      if (!tag) return w(article, word, pl, translation, lvl, 'none');
+      if (tag.startsWith('-')) {
+        const suffix = tag.slice(1);
+        const hint = (H as Record<string, string>)[suffix === 'tät' ? 'tat' : suffix];
+        if (!hint) throw new Error(`Словарь: нет подсказки для окончания -${suffix} («${word}»)`);
+        return sfx(article, word, pl, translation, lvl, suffix, hint);
+      }
+      if (tag.startsWith('@')) {
+        const hint = (H as Record<string, string>)[tag.slice(1)];
+        if (!hint) throw new Error(`Словарь: нет смысловой группы ${tag} («${word}»)`);
+        return w(article, word, pl, translation, lvl, 'semantic', { ruleHint: hint });
+      }
+      if (tag.startsWith('!')) {
+        const m = /^!([a-zäöü]+):(.+)$/.exec(tag);
+        return m
+          ? w(article, word, pl, translation, lvl, 'exception', { highlight: m[1], ruleHint: m[2]!.trim() })
+          : w(article, word, pl, translation, lvl, 'exception', { ruleHint: tag.slice(1).trim() });
+      }
+      throw new Error(`Словарь: неизвестная метка «${tag}» («${word}»)`);
+    });
+}
+
+/** Базовый набор (выверенные омонимы и исключения) + расширенный словарь. */
+export const WORDS: readonly WordItem[] = [
+  ...DER,
+  ...DIE,
+  ...DAS,
+  ...parseCompact('der', DER_EXTRA),
+  ...parseCompact('die', DIE_EXTRA),
+  ...parseCompact('das', DAS_EXTRA),
+];

@@ -15,6 +15,6 @@ npm run lint
 ## Структура
 
 - `src/engine/` — чистая логика без React: `wordQueue` (корзины, быстрый возврат, защита от повторов), `mastery`, `scoring`, `timer`, `session` (ERROR_LOCK, жизни, спринт, пауза).
-- `src/data/` — словарь (210 слов) и `dictionaryRepository` (точка расширения для импорта в v2).
+- `src/data/` — словарь (~1260 слов): `words.ts` (база, омонимы, исключения) + `extra/{der,die,das}.ts` (компактные списки: `Слово | мн. ч. | перевод | уровень | метка`), `dictionaryRepository` — точка расширения для импорта в v2.
 - `src/state/` — хранилище `artikel_blitz_v1` с проверкой данных и работой в памяти, если localStorage недоступен.
 - `src/screens/`, `src/components/` — UI.

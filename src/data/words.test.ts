@@ -8,6 +8,19 @@ const REQUIRED_SUFFIXES: Record<Article, string[]> = {
   das: ['chen', 'lein', 'ment', 'um', 'tum', 'nis'],
 };
 
+/** Артикль по правилу окончания (для слов с ruleType 'suffix'). */
+const SUFFIX_ARTICLE: Record<string, Article> = {
+  ling: 'der', ismus: 'der', or: 'der', ant: 'der', ist: 'der', ich: 'der', ig: 'der',
+  ung: 'die', heit: 'die', keit: 'die', schaft: 'die', tion: 'die', tät: 'die', ik: 'die', ei: 'die', in: 'die', e: 'die', ur: 'die',
+  chen: 'das', lein: 'das', ment: 'das', um: 'das', tum: 'das', nis: 'das', o: 'das',
+};
+
+/** Окончания почти без исключений: другой артикль допустим только с пометкой exception. */
+const STRICT_SUFFIXES: Record<string, Article> = {
+  ung: 'die', heit: 'die', keit: 'die', schaft: 'die', tion: 'die', tät: 'die',
+  ling: 'der', ismus: 'der', chen: 'das', lein: 'das',
+};
+
 const HOMONYMS = [
   ['see-m', 'see-f'],
   ['teil-m', 'teil-n'],
@@ -16,9 +29,8 @@ const HOMONYMS = [
 ];
 
 describe('словарь', () => {
-  it('размер 200–220', () => {
-    expect(WORDS.length).toBeGreaterThanOrEqual(200);
-    expect(WORDS.length).toBeLessThanOrEqual(220);
+  it('не меньше 1000 слов', () => {
+    expect(WORDS.length).toBeGreaterThanOrEqual(1000);
   });
 
   it('уникальные id', () => {
@@ -91,6 +103,25 @@ describe('словарь', () => {
     for (const w of WORDS) {
       const twins = WORDS.filter((o) => o.word === w.word);
       if (twins.length > 1) expect(w.alwaysShowTranslation, w.id).toBe(true);
+    }
+  });
+
+  it('правило окончания размечено только у слов с этим артиклем', () => {
+    for (const w of WORDS) {
+      if (w.ruleType !== 'suffix') continue;
+      expect(SUFFIX_ARTICLE[w.highlight!], `${w.word}: нет правила -${w.highlight}`).toBeDefined();
+      expect(w.article, `${w.article} ${w.word}: -${w.highlight}`).toBe(SUFFIX_ARTICLE[w.highlight!]);
+    }
+  });
+
+  it('слово на «строгое» окончание с другим артиклем помечено исключением', () => {
+    // Защита от опечаток в артикле: die Wohnung, der Lehrling, das Mädchen не могут быть с другим артиклем.
+    for (const w of WORDS) {
+      for (const [suffix, article] of Object.entries(STRICT_SUFFIXES)) {
+        if (w.word.length > suffix.length + 1 && w.word.endsWith(suffix) && w.article !== article) {
+          expect(w.ruleType, `${w.article} ${w.word} (-${suffix} → ${article})`).toBe('exception');
+        }
+      }
     }
   });
 

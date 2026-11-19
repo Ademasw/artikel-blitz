@@ -129,23 +129,53 @@ describe('WordQueue: быстрый возврат', () => {
 });
 
 describe('WordQueue: корзины', () => {
-  it('веса 60 / 25 / 15', () => {
-    const pool = words(30);
+  it('веса 30 / 30 / 25 / 15: новые, слабые, средние, освоенные', () => {
+    const pool = words(40);
     const progress: Record<string, WordProgress> = {};
     pool.forEach((w, i) => {
-      progress[w.id] = { ...emptyProgress(w.id), mastery: i < 10 ? 0 : i < 20 ? 3 : 5, lastSeenAt: 0 };
+      const group = Math.floor(i / 10); // 0 новые, 1 слабые, 2 средние, 3 освоенные
+      if (group === 0) return; // новые: прогресса нет
+      progress[w.id] = { ...emptyProgress(w.id), mastery: [0, 1, 3, 5][group]!, lastSeenAt: 1 };
     });
     const q = new WordQueue(pool, 'weighted', (id) => progress[id], mulberry32(42));
-    const counts = [0, 0, 0];
+    const counts = [0, 0, 0, 0];
     const N = 20_000;
     for (let i = 0; i < N; i++) {
       const w = q.next(0)!;
       counts[bucketOf(progress[w.id])]! += 1;
       q.report(w.id, true);
     }
-    expect(counts[0]! / N).toBeCloseTo(0.6, 1);
-    expect(counts[1]! / N).toBeCloseTo(0.25, 1);
-    expect(counts[2]! / N).toBeCloseTo(0.15, 1);
+    expect(counts[0]! / N).toBeCloseTo(0.3, 1);
+    expect(counts[1]! / N).toBeCloseTo(0.3, 1);
+    expect(counts[2]! / N).toBeCloseTo(0.25, 1);
+    expect(counts[3]! / N).toBeCloseTo(0.15, 1);
+  });
+
+  it('большой словарь: слабые слова не тонут среди сотен новых', () => {
+    const pool = words(1000);
+    const progress: Record<string, WordProgress> = {};
+    // 10 слов, на которых ошибались; остальные 990 ни разу не встречались
+    pool.slice(0, 10).forEach((w) => {
+      progress[w.id] = { ...emptyProgress(w.id), mastery: 0, lastSeenAt: 1, lastAnswerCorrect: false };
+    });
+    const q = new WordQueue(pool, 'weighted', (id) => progress[id], mulberry32(3));
+    let weak = 0;
+    const N = 2000;
+    for (let i = 0; i < N; i++) {
+      const w = q.next(0)!;
+      if (progress[w.id]) weak++;
+      q.report(w.id, true);
+    }
+    // без отдельной корзины доля была бы ~1 %
+    expect(weak / N).toBeGreaterThan(0.4);
+  });
+
+  it('bucketOf: новое, слабое, среднее, освоенное', () => {
+    expect(bucketOf(undefined)).toBe(0);
+    expect(bucketOf(emptyProgress('x'))).toBe(0);
+    expect(bucketOf({ ...emptyProgress('x'), lastSeenAt: 5 })).toBe(1);
+    expect(bucketOf({ ...emptyProgress('x'), mastery: 2, lastSeenAt: 5 })).toBe(2);
+    expect(bucketOf({ ...emptyProgress('x'), mastery: 4, lastSeenAt: 5 })).toBe(3);
   });
 
   it('внутри корзины давно не виденные слова выпадают чаще', () => {

@@ -15,7 +15,12 @@ interface Scheduled {
   stage: 'retry' | 'control';
 }
 
-const BUCKET_WEIGHTS = [0.6, 0.25, 0.15] as const;
+/**
+ * Корзины: новые / слабые (уже встречались, mastery < 2) / средние / освоенные.
+ * Новые и слабые разделены, чтобы в большом словаре сотни ещё не виденных слов
+ * не вытесняли слова, на которых игрок ошибался.
+ */
+const BUCKET_WEIGHTS = [0.3, 0.3, 0.25, 0.15] as const;
 const HOUR = 3_600_000;
 const STALE_CAP_HOURS = 24;
 
@@ -39,11 +44,14 @@ function weightedPick<T>(items: readonly T[], weights: readonly number[], rng: R
   return items[items.length - 1];
 }
 
-export function bucketOf(p: WordProgress | undefined): 0 | 1 | 2 {
+export type Bucket = 0 | 1 | 2 | 3;
+
+/** 0 — новое (не встречалось), 1 — слабое, 2 — среднее, 3 — освоенное. */
+export function bucketOf(p: WordProgress | undefined): Bucket {
   const m = p?.mastery ?? 0;
-  if (m < 2) return 0;
-  if (m < 4) return 1;
-  return 2;
+  if (m >= 4) return 3;
+  if (m >= 2) return 2;
+  return !p || p.lastSeenAt === 0 ? 0 : 1;
 }
 
 /** Минимальное число других карточек между двумя показами одного слова. */
@@ -197,10 +205,10 @@ export class WordQueue {
       return candidates[Math.floor(this.rng() * candidates.length)];
     }
 
-    const buckets: string[][] = [[], [], []];
+    const buckets: string[][] = BUCKET_WEIGHTS.map(() => []);
     for (const id of candidates) buckets[bucketOf(this.progress(id))]!.push(id);
     const bucketIdx = weightedPick(
-      [0, 1, 2],
+      BUCKET_WEIGHTS.map((_, i) => i),
       BUCKET_WEIGHTS.map((w, i) => (buckets[i]!.length > 0 ? w : 0)),
       this.rng,
     )!;
