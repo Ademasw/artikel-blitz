@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-der: #3b82f6;
+  --color-die: #f43f5e;
+  --color-das: #10b981;
+
+  --color-bg: #0a0c11;
+  --color-surface: #12161f;
+  --color-surface-2: #1a1f2b;
+  --color-line: #262c3a;
+  --color-ink: #eceff5;
+  --color-muted: #8a93a7;
+  --color-warn: #f59e0b;
+  --color-fever: #f5c542;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100dvh;
+  }
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+.safe-pad {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* Fever: мягкое пульсирующее свечение рамки */
+@keyframes fever-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 2px rgb(245 197 66 / 0.55),
+      inset 0 0 40px rgb(245 197 66 / 0.12);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 2px rgb(245 197 66 / 0.9),
+      inset 0 0 70px rgb(245 197 66 / 0.25);
+  }
+}
+.fever-frame {
+  animation: fever-pulse 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fever-frame {
+    animation: none;
+    box-shadow: inset 0 0 0 2px rgb(245 197 66 / 0.8);
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
