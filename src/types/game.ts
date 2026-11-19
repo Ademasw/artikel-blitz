@@ -42,10 +42,29 @@ export type LevelFilter = 'A1-A2' | 'B1-B2' | 'ALL';
 export type RuleFilter = 'ALL' | 'suffix' | 'semantic' | 'exception';
 export type KeyPreset = 'ASD' | 'ARROWS';
 
+/** Озвучка слова: выключена / только при ошибке / после каждого ответа. */
+export type SpeechMode = 'off' | 'mistakes' | 'always';
+
 export interface GameSettings {
   soundEnabled: boolean;
   showTranslationBeforeAnswer: boolean;
   keyPreset: KeyPreset;
+  /** Цель на день: сколько ответов дать. */
+  dailyGoal: number;
+  speech: SpeechMode;
+}
+
+/** Статистика одного дня (ключ — локальная дата YYYY-MM-DD). */
+export interface DayStat {
+  answers: number;
+  correct: number;
+}
+
+export type GrammarCase = 'nom' | 'akk' | 'dat' | 'gen';
+
+export interface CaseStat {
+  attempts: number;
+  correct: number;
 }
 
 export interface HighScores {
@@ -67,4 +86,8 @@ export interface PersistedState {
   settings: GameSettings;
   highScores: HighScores;
   levelFilter: LevelFilter;
+  /** Ответы по дням: цель дня, серия, активность. */
+  daily: Record<string, DayStat>;
+  /** Режим «Падежи»: первые попытки по каждому падежу. */
+  cases: Record<GrammarCase, CaseStat>;
 }

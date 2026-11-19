@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Flag, Heart } from 'lucide-react';
+import { Flag, Heart, Pause } from 'lucide-react';
 import { SURVIVAL_LIVES } from '../engine/modes';
 import { comboMultiplier, isFever } from '../engine/scoring';
 import type { SessionSnapshot } from '../engine/session';
@@ -20,11 +20,11 @@ export function Hud({ snap, onBack, onFinish }: Props) {
       <button
         type="button"
         onClick={onBack}
-        className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-muted hover:text-ink"
+        className="grid size-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink"
         aria-label="Пауза"
         title="Пауза (Esc)"
       >
-        <ArrowLeft size={20} />
+        <Pause size={20} />
       </button>
 
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -41,9 +41,9 @@ export function Hud({ snap, onBack, onFinish }: Props) {
           </div>
         )}
         {snap.mode === 'sprint' && (
-          <div className="relative text-xl font-bold" aria-label="Оставшееся время">
+          <div className="relative font-display text-2xl font-bold" aria-label="Оставшееся время">
             <SprintClock timer={snap.timer} />
-            <span className="ml-0.5 text-sm text-muted">s</span>
+            <span className="ml-0.5 text-base text-muted">с</span>
             <AnimatePresence>
               {snap.bonusSeq > 0 && (
                 <motion.span
@@ -51,9 +51,9 @@ export function Hud({ snap, onBack, onFinish }: Props) {
                   initial={{ opacity: 1, y: 0 }}
                   animate={{ opacity: 0, y: -22 }}
                   transition={{ duration: 0.9 }}
-                  className="absolute -top-1 left-full ml-1 text-sm font-bold text-das"
+                  className="absolute -top-1 left-full ml-1 text-base font-bold text-chalk"
                 >
-                  +3s
+                  +3
                 </motion.span>
               )}
             </AnimatePresence>
@@ -61,31 +61,31 @@ export function Hud({ snap, onBack, onFinish }: Props) {
         )}
         {(snap.mode === 'mistakes' || snap.mode === 'round_review') && (
           <span className="text-sm text-muted">
-            Осталось: <b className="text-ink tabular-nums">{snap.remainingWords}</b>
+            Осталось <b className="font-display text-lg text-ink tabular-nums">{snap.remainingWords}</b>
           </span>
         )}
         {snap.mode === 'zen' && (
           <button
             type="button"
             onClick={onFinish}
-            className="flex items-center gap-1.5 rounded-xl bg-surface-2 px-3 py-2 text-sm text-muted hover:text-ink"
+            className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink"
           >
-            <Flag size={16} /> Завершить раунд
+            <Flag size={16} /> Закончить
           </button>
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-baseline gap-2">
         {mult > 1 && (
           <span
-            className={`rounded-lg px-2 py-1 text-xs font-extrabold ${
-              fever ? 'bg-fever text-black' : 'bg-surface-2 text-ink'
+            className={`rounded-[4px] px-1.5 py-0.5 font-display text-sm font-extrabold ${
+              fever ? 'bg-chalk text-paper-ink' : 'text-chalk'
             }`}
           >
-            {fever ? 'FEVER x4' : `x${mult}`}
+            {fever ? 'Fever ×4' : `×${mult}`}
           </span>
         )}
-        <span className="min-w-[4.5ch] text-right text-xl font-bold tabular-nums" aria-label="Счёт">
+        <span className="min-w-[4.5ch] text-right font-display text-2xl font-bold tabular-nums" aria-label="Счёт">
           {snap.score.toLocaleString('ru-RU')}
         </span>
       </div>

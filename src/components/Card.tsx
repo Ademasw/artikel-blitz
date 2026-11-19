@@ -1,4 +1,5 @@
 import { motion, useAnimationControls, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
+import { Volume2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Article, GamePhase, WordItem } from '../types/game';
 import { ART, ART_DIRECTION } from './articleStyles';
@@ -13,6 +14,8 @@ interface Props {
   reducedMotion: boolean;
   keyHint: string;
   onSwipe: (a: Article, from: { x: number; y: number }) => void;
+  /** Озвучить слово (кнопка в разборе ошибки). */
+  onSpeak?: () => void;
 }
 
 function swipeArticle(dx: number, dy: number): Article | null {
@@ -25,8 +28,15 @@ function swipeArticle(dx: number, dy: number): Article | null {
   return null;
 }
 
-export const CARD_ENTER = { opacity: 0, scale: 0.94, y: 10 };
-export const CARD_CENTER = { opacity: 1, scale: 1, x: 0, y: 0, transition: { duration: 0.12, ease: 'easeOut' } } as const;
+export const CARD_ENTER = { opacity: 0, scale: 0.96, y: 14, rotate: 0 };
+export const CARD_CENTER = {
+  opacity: 1,
+  scale: 1,
+  x: 0,
+  y: 0,
+  rotate: 0,
+  transition: { duration: 0.12, ease: 'easeOut' },
+} as const;
 export const FLY_MS = 140;
 
 /** Куда улетает карточка после ответа: в сторону выбранного артикля. */
@@ -43,17 +53,17 @@ export function HighlightedWord({ word, highlight, color }: { word: string; high
   return (
     <>
       {stem}
-      <span className={`${color} underline decoration-2 underline-offset-[6px]`}>{highlight}</span>
+      <span className={`${color} underline decoration-[3px] underline-offset-[7px]`}>{highlight}</span>
     </>
   );
 }
 
-export function Card({ word, phase, showTranslation, reducedMotion, keyHint, onSwipe }: Props) {
+export function Card({ word, phase, showTranslation, reducedMotion, keyHint, onSwipe, onSpeak }: Props) {
   const locked = phase === 'error_lock';
   const correct = ART[word.article];
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotate = useTransform(x, [-220, 220], [-12, 12]);
+  const rotate = useTransform(x, [-220, 220], [-10, 10]);
   const [dragDir, setDragDir] = useState<Article | null>(null);
   const shake = useAnimationControls();
 
@@ -74,7 +84,8 @@ export function Card({ word, phase, showTranslation, reducedMotion, keyHint, onS
   };
 
   const translationVisible = showTranslation || !!word.alwaysShowTranslation || locked;
-  const borderClass = locked ? correct.border : dragDir ? ART[dragDir].border : 'border-line';
+  // Шапка карточки: в разборе — цвет правильного артикля, при свайпе — цвет направления
+  const band = locked ? correct.bg : dragDir ? ART[dragDir].bg : 'bg-transparent';
   const longWord = word.word.length + (locked ? 4 : 0) > 12;
 
   return (
@@ -88,29 +99,37 @@ export function Card({ word, phase, showTranslation, reducedMotion, keyHint, onS
       onDrag={onDrag}
       onDragEnd={onDragEnd}
     >
-      <motion.div
-        animate={shake}
-        className={`relative flex h-full flex-col rounded-3xl border-2 bg-surface px-5 pt-4 pb-4 shadow-[0_20px_60px_-20px_rgb(0_0_0/0.7)] transition-colors duration-100 ${borderClass}`}
-      >
-        {locked && <div className={`pointer-events-none absolute inset-0 rounded-[22px] ${correct.soft}`} />}
+      <motion.div animate={shake} className="paper-card relative flex h-full flex-col overflow-hidden px-5 pb-4">
+        <div className={`absolute inset-x-0 top-0 h-1.5 transition-colors duration-100 ${band}`} aria-hidden />
 
-        <div className="relative flex items-center justify-between text-xs font-semibold tracking-wide">
-          <span className="rounded-md bg-surface-2 px-2 py-1 text-muted">{word.level}</span>
-          {word.alwaysShowTranslation && !locked && (
-            <span className="rounded-md bg-surface-2 px-2 py-1 text-muted">омоним</span>
+        <div className="relative flex h-12 items-center justify-between text-xs font-semibold text-paper-muted">
+          <span>{word.level}</span>
+          {word.alwaysShowTranslation && !locked && <span>омоним: смотри перевод</span>}
+          {locked && onSpeak && (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={onSpeak}
+              className="-mr-2 grid size-9 place-items-center rounded-md text-paper-muted hover:bg-black/5 hover:text-paper-ink"
+              aria-label="Произнести слово"
+            >
+              <Volume2 size={18} />
+            </button>
           )}
         </div>
 
         <div className="relative flex flex-1 flex-col items-center justify-center text-center">
           <div
-            className="font-extrabold leading-tight tracking-tight break-words"
-            style={{ fontSize: longWord ? 'clamp(1.6rem, 8.2vw, 2.6rem)' : 'clamp(2.2rem, 11vw, 3.4rem)' }}
+            className="font-display leading-[1.05] font-extrabold tracking-tight break-words"
+            style={{ fontSize: longWord ? 'clamp(1.9rem, 9vw, 2.9rem)' : 'clamp(2.6rem, 13vw, 3.9rem)' }}
             lang="de"
           >
-            {locked && <span className={`${correct.text} mr-2`}>{correct.label}</span>}
+            {locked && <span className={`${correct.text} mr-2.5`}>{correct.label}</span>}
             {locked ? <HighlightedWord word={word.word} highlight={word.highlight} color={correct.text} /> : word.word}
           </div>
-          <div className={`mt-2 min-h-6 text-base text-muted ${translationVisible ? '' : 'invisible'}`}>
+          <div
+            className={`mt-2 min-h-6 text-base text-paper-muted ${translationVisible ? '' : 'invisible'}`}
+          >
             {word.translation}
           </div>
         </div>
@@ -119,18 +138,18 @@ export function Card({ word, phase, showTranslation, reducedMotion, keyHint, onS
         <div className="relative flex h-[92px] flex-col items-center justify-end gap-2 text-center">
           {locked && (
             <>
-              <div className="text-sm text-muted" lang="de">
+              <div className="text-sm text-paper-muted" lang="de">
                 {word.plural ? (
                   <>
-                    мн. ч.: <span className="text-ink">die {word.plural}</span>
+                    мн. ч.: <span className="font-semibold text-paper-ink">die {word.plural}</span>
                   </>
                 ) : (
                   'нет мн. ч.'
                 )}
               </div>
               <RuleBadge word={word} />
-              <div className="text-xs text-muted">
-                Нажми <span className={`font-bold ${correct.text}`}>{correct.label}</span>
+              <div className="text-xs text-paper-muted">
+                Нажмите <span className={`font-bold ${correct.text}`}>{correct.label}</span>
                 <span className="hidden sm:inline"> ({keyHint})</span>, чтобы продолжить
               </div>
             </>

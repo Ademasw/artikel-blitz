@@ -1,8 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { addAnswer, dayKey } from '../engine/daily';
 import { applyAnswer, emptyProgress } from '../engine/mastery';
-import type { GameSettings, HighScores, LevelFilter, PersistedState, WordProgress } from '../types/game';
+import type {
+  CaseStat,
+  DayStat,
+  GameSettings,
+  GrammarCase,
+  HighScores,
+  LevelFilter,
+  PersistedState,
+  WordProgress,
+} from '../types/game';
 import { setSoundEnabled } from '../utils/sound';
-import { defaultState, loadState, saveState } from './persistence';
+import { defaultState, emptyCases, loadState, saveState } from './persistence';
+import { mergeStates, type MergeReport } from './sync';
 
 const SAVE_DEBOUNCE_MS = 250;
 
@@ -11,13 +22,19 @@ interface AppStore {
   settings: GameSettings;
   highScores: HighScores;
   levelFilter: LevelFilter;
+  daily: Record<string, DayStat>;
+  cases: Record<GrammarCase, CaseStat>;
   /** Актуальный прогресс без ожидания ререндера (для очереди слов). */
   getProgress: (wordId: string) => WordProgress | undefined;
+  /** Текущее состояние целиком (для экспорта). */
+  snapshot: () => PersistedState;
   recordAnswer: (wordId: string, correct: boolean, reactionMs: number) => void;
+  recordCaseAnswer: (c: GrammarCase, correct: boolean) => void;
   updateSettings: (patch: Partial<GameSettings>) => void;
   setLevelFilter: (f: LevelFilter) => void;
   /** Возвращает true, если это новый рекорд. */
   submitScore: (mode: keyof HighScores, score: number) => boolean;
+  importProgress: (incoming: PersistedState) => MergeReport;
   resetProgress: () => void;
 }
 
@@ -46,14 +63,30 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => setSoundEnabled(state.settings.soundEnabled), [state.settings.soundEnabled]);
 
   const getProgress = useCallback((id: string) => stateRef.current.progress[id], []);
+  const snapshot = useCallback(() => stateRef.current, []);
 
   const recordAnswer = useCallback(
     (wordId: string, correct: boolean, reactionMs: number) => {
       const cur = stateRef.current;
       const prev = cur.progress[wordId] ?? emptyProgress(wordId);
+      const now = Date.now();
       commit({
         ...cur,
-        progress: { ...cur.progress, [wordId]: applyAnswer(prev, correct, reactionMs, Date.now()) },
+        progress: { ...cur.progress, [wordId]: applyAnswer(prev, correct, reactionMs, now) },
+        daily: addAnswer(cur.daily, dayKey(new Date(now)), correct),
+      });
+    },
+    [commit],
+  );
+
+  const recordCaseAnswer = useCallback(
+    (c: GrammarCase, correct: boolean) => {
+      const cur = stateRef.current;
+      const prev = cur.cases[c];
+      commit({
+        ...cur,
+        cases: { ...cur.cases, [c]: { attempts: prev.attempts + 1, correct: prev.correct + (correct ? 1 : 0) } },
+        daily: addAnswer(cur.daily, dayKey(new Date()), correct),
       });
     },
     [commit],
@@ -84,10 +117,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const importProgress = useCallback(
+    (incoming: PersistedState) => {
+      const report = mergeStates(stateRef.current, incoming);
+      commit(report.state);
+      saveState(report.state);
+      return report;
+    },
+    [commit],
+  );
+
   const resetProgress = useCallback(() => {
     const cur = stateRef.current;
-    const base = defaultState();
-    const next = { ...base, settings: cur.settings, levelFilter: cur.levelFilter };
+    const next = { ...defaultState(), settings: cur.settings, levelFilter: cur.levelFilter, cases: emptyCases() };
     commit(next);
     saveState(next);
   }, [commit]);
@@ -98,14 +140,30 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       settings: state.settings,
       highScores: state.highScores,
       levelFilter: state.levelFilter,
+      daily: state.daily,
+      cases: state.cases,
       getProgress,
+      snapshot,
       recordAnswer,
+      recordCaseAnswer,
       updateSettings,
       setLevelFilter,
       submitScore,
+      importProgress,
       resetProgress,
     }),
-    [state, getProgress, recordAnswer, updateSettings, setLevelFilter, submitScore, resetProgress],
+    [
+      state,
+      getProgress,
+      snapshot,
+      recordAnswer,
+      recordCaseAnswer,
+      updateSettings,
+      setLevelFilter,
+      submitScore,
+      importProgress,
+      resetProgress,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

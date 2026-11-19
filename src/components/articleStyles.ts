@@ -11,8 +11,8 @@ export const ART: Record<
     text: 'text-der',
     bg: 'bg-der',
     border: 'border-der',
-    soft: 'bg-der/15',
-    hex: '#3b82f6',
+    soft: 'bg-der/10',
+    hex: '#2f5ad8',
   },
   die: {
     label: 'die',
@@ -20,8 +20,8 @@ export const ART: Record<
     text: 'text-die',
     bg: 'bg-die',
     border: 'border-die',
-    soft: 'bg-die/15',
-    hex: '#f43f5e',
+    soft: 'bg-die/10',
+    hex: '#d7382b',
   },
   das: {
     label: 'das',
@@ -29,9 +29,16 @@ export const ART: Record<
     text: 'text-das',
     bg: 'bg-das',
     border: 'border-das',
-    soft: 'bg-das/15',
-    hex: '#10b981',
+    soft: 'bg-das/10',
+    hex: '#148a52',
   },
+};
+
+/** Цвет текста артикля на тёмной доске: чуть светлее, чтобы читался. */
+export const ART_ON_BOARD: Record<Article, string> = {
+  der: 'text-[#7d9bf0]',
+  die: 'text-[#f07b6f]',
+  das: 'text-[#4cc488]',
 };
 
 /** Направление вылета/свайпа: совпадает с позицией кнопки. */

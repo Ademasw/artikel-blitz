@@ -1,20 +1,39 @@
 @import 'tailwindcss';
 
+/*
+ * Дизайн: школьная доска (Tafel) и бумажные карточки для слов (Karteikarten).
+ * Доска — тихий фон в цветах мела; карточка — единственный яркий объект.
+ * Цвета артиклей — привычные по учебникам (der синий, die красный, das зелёный),
+ * но пигментные: ультрамарин, киноварь, «школьный» зелёный.
+ */
 @theme {
-  --color-der: #3b82f6;
-  --color-die: #f43f5e;
-  --color-das: #10b981;
+  /* доска */
+  --color-bg: #1b2220;
+  --color-surface: #222a27;
+  --color-surface-2: #2b3430;
+  --color-line: #39443f;
+  --color-ink: #edf0ea;
+  --color-muted: #98a49d;
 
-  --color-bg: #0a0c11;
-  --color-surface: #12161f;
-  --color-surface-2: #1a1f2b;
-  --color-line: #262c3a;
-  --color-ink: #eceff5;
-  --color-muted: #8a93a7;
-  --color-warn: #f59e0b;
-  --color-fever: #f5c542;
+  /* бумага */
+  --color-paper: #f7f7f2;
+  --color-paper-ink: #1c211f;
+  --color-paper-muted: #69726d;
+  --color-paper-rule: #d6e0ec;
+  --color-paper-edge: #e4e6dc;
 
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* артикли */
+  --color-der: #2f5ad8;
+  --color-die: #d7382b;
+  --color-das: #148a52;
+
+  /* жёлтый мел: серия, цель дня, рекорды, fever */
+  --color-chalk: #f0c649;
+  --color-fever: #f0c649;
+  --color-warn: #e89b3a;
+
+  --font-sans: 'Fira Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fira Sans Condensed', 'Fira Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -28,9 +47,15 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    background: var(--color-bg);
+    background-color: var(--color-bg);
+    /* едва заметные разводы мела: два мягких пятна, без текстурных картинок */
+    background-image:
+      radial-gradient(60rem 40rem at 15% -10%, rgb(255 255 255 / 0.035), transparent 60%),
+      radial-gradient(50rem 30rem at 110% 110%, rgb(255 255 255 / 0.03), transparent 60%);
+    background-attachment: fixed;
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-feature-settings: 'tnum' 0;
     overflow-x: hidden;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
@@ -43,9 +68,13 @@
     cursor: not-allowed;
   }
   :focus-visible {
-    outline: 2px solid var(--color-ink);
+    outline: 2px solid var(--color-chalk);
     outline-offset: 2px;
   }
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 .safe-pad {
@@ -55,18 +84,51 @@
   padding-right: max(1rem, env(safe-area-inset-right));
 }
 
-/* Fever: мягкое пульсирующее свечение рамки */
+/* Карточка для слов: шапка без линий, дальше голубая линовка */
+.paper-card {
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(to bottom, var(--color-paper) 0 3rem, transparent 3rem),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(1.75rem - 1px),
+      var(--color-paper-rule) calc(1.75rem - 1px),
+      var(--color-paper-rule) 1.75rem
+    );
+  color: var(--color-paper-ink);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 var(--color-paper-edge),
+    0 18px 40px -18px rgb(0 0 0 / 0.65),
+    0 2px 6px rgb(0 0 0 / 0.25);
+}
+
+/* Бумажка без линовки: списки ошибок, плашки на доске */
+.paper-slip {
+  background-color: var(--color-paper);
+  color: var(--color-paper-ink);
+  border-radius: 4px;
+  box-shadow: 0 8px 18px -12px rgb(0 0 0 / 0.7);
+}
+
+/* Меловая линия-разделитель на доске */
+.chalk-rule {
+  border-color: rgb(237 240 234 / 0.12);
+}
+
+/* Fever: рамка доски светится жёлтым мелом */
 @keyframes fever-pulse {
   0%,
   100% {
     box-shadow:
-      inset 0 0 0 2px rgb(245 197 66 / 0.55),
-      inset 0 0 40px rgb(245 197 66 / 0.12);
+      inset 0 0 0 2px rgb(240 198 73 / 0.5),
+      inset 0 0 40px rgb(240 198 73 / 0.1);
   }
   50% {
     box-shadow:
-      inset 0 0 0 2px rgb(245 197 66 / 0.9),
-      inset 0 0 70px rgb(245 197 66 / 0.25);
+      inset 0 0 0 2px rgb(240 198 73 / 0.9),
+      inset 0 0 70px rgb(240 198 73 / 0.22);
   }
 }
 .fever-frame {
@@ -76,7 +138,7 @@
 @media (prefers-reduced-motion: reduce) {
   .fever-frame {
     animation: none;
-    box-shadow: inset 0 0 0 2px rgb(245 197 66 / 0.8);
+    box-shadow: inset 0 0 0 2px rgb(240 198 73 / 0.8);
   }
   *,
   *::before,

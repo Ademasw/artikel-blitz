@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AnswerButtons } from '../components/AnswerButtons';
-import { ART } from '../components/articleStyles';
+import { ART_ON_BOARD } from '../components/articleStyles';
 import { CARD_CENTER, CARD_ENTER, Card, FLY_MS, flyTarget } from '../components/Card';
 import { Dialog, DialogButton } from '../components/Dialog';
 import { Hud } from '../components/Hud';
@@ -15,6 +15,7 @@ import { useKeyboard } from '../input/useKeyboard';
 import { useAppStore } from '../state/AppStore';
 import type { Article, GameMode, WordItem } from '../types/game';
 import { playBonus, playCorrect, playError, playNudge, unlockAudio } from '../utils/sound';
+import { speak, stopSpeaking } from '../utils/speech';
 
 interface Props {
   mode: GameMode;
@@ -40,11 +41,19 @@ export function Game({ mode, pool, onFinish }: Props) {
   } | null>(null);
   const [nudge, setNudge] = useState<{ article: Article; seq: number } | null>(null);
 
+  const speechMode = settings.speech;
+  const say = useCallback((w: WordItem) => speak(`${w.article} ${w.word}`), []);
+  useEffect(() => stopSpeaking, []);
+
   // Таймаут карточки / конец спринта считаются в rAF по performance.now().
   useFrame(
     (now) => {
+      const word = session.getSnapshot().current;
       const out = session.tick(now);
-      if (out?.kind === 'wrong') playError();
+      if (out?.kind === 'wrong') {
+        playError();
+        if (word && speechMode !== 'off') say(word);
+      }
     },
     snap.phase === 'playing' && snap.timer !== null,
   );
@@ -87,9 +96,11 @@ export function Game({ mode, pool, onFinish }: Props) {
         case 'correct':
           playCorrect(out.combo, isFever(out.combo));
           if (out.bonusTime || out.feverStart) playBonus();
+          if (speechMode === 'always' && before.current) say(before.current);
           break;
         case 'wrong':
           playError();
+          if (speechMode !== 'off' && before.current) say(before.current);
           break;
         case 'lock_wrong':
           playNudge();
@@ -97,7 +108,7 @@ export function Game({ mode, pool, onFinish }: Props) {
           break;
       }
     },
-    [session],
+    [session, speechMode, say],
   );
 
   const togglePause = useCallback(() => {
@@ -122,7 +133,7 @@ export function Game({ mode, pool, onFinish }: Props) {
     <div className={`safe-pad mx-auto flex min-h-dvh w-full max-w-xl flex-col ${fever ? 'fever-frame' : ''}`}>
       <Hud snap={snap} onBack={togglePause} onFinish={() => session.finish(performance.now())} />
 
-      <div className="mt-3 h-2">{mode === 'survival' && <TimeBar timer={snap.timer} totalMs={snap.timerTotalMs} />}</div>
+      <div className="mt-3 h-1.5">{mode === 'survival' && <TimeBar timer={snap.timer} totalMs={snap.timerTotalMs} />}</div>
 
       <main className="flex flex-1 flex-col items-center justify-center py-4">
         <div className="relative w-full max-w-md" style={{ height: 'clamp(270px, 46dvh, 360px)' }}>
@@ -140,6 +151,7 @@ export function Game({ mode, pool, onFinish }: Props) {
                 reducedMotion={reducedMotion}
                 keyHint={hints[word.article]}
                 onSwipe={handleArticle}
+                onSpeak={() => say(word)}
               />
             </motion.div>
           )}
@@ -167,7 +179,7 @@ export function Game({ mode, pool, onFinish }: Props) {
         <div className="mt-4 h-6 truncate text-center text-sm text-muted" lang="de">
           {snap.previous && (
             <>
-              <span className={`font-bold ${ART[snap.previous.article].text}`}>{snap.previous.article}</span>{' '}
+              <span className={`font-bold ${ART_ON_BOARD[snap.previous.article]}`}>{snap.previous.article}</span>{' '}
               <span className="text-ink">{snap.previous.word}</span>
               <span lang="ru"> — {snap.previous.translation}</span>
             </>

@@ -32,7 +32,7 @@ export const MODE_STRATEGY: Record<GameMode, QueueStrategy> = {
 export const MODE_TITLES: Record<GameMode, string> = {
   survival: 'Выживание',
   sprint: 'Спринт',
-  zen: 'Дзен / Правила',
+  zen: 'Дзен',
   mistakes: 'Разбор завалов',
   round_review: 'Ошибки раунда',
 };
@@ -45,7 +45,7 @@ export const LEVEL_FILTER_LABELS: Record<LevelFilter, string> = {
 
 export const RULE_FILTER_LABELS: Record<RuleFilter, string> = {
   ALL: 'Все',
-  suffix: 'Суффиксы',
+  suffix: 'Окончания',
   semantic: 'Группы',
   exception: 'Исключения',
 };

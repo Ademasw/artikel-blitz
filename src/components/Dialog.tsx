@@ -8,7 +8,7 @@ interface Props {
   onClose?: () => void;
 }
 
-/** Модальное окно поверх экрана: фокус внутрь, закрытие по клику на фон. */
+/** Модальное окно — бумажный лист поверх доски. Фокус внутрь, закрытие по клику на фон. */
 export function Dialog({ title, children, actions, onClose }: Props) {
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -17,7 +17,7 @@ export function Dialog({ title, children, actions, onClose }: Props) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -31,13 +31,13 @@ export function Dialog({ title, children, actions, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-sm rounded-3xl border border-line bg-surface p-6 shadow-2xl"
-        initial={{ scale: 0.95, y: 8 }}
-        animate={{ scale: 1, y: 0 }}
+        className="paper-slip w-full max-w-sm p-6"
+        initial={{ y: 12, rotate: -0.6 }}
+        animate={{ y: 0, rotate: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold">{title}</h2>
-        {children && <div className="mt-2 text-sm text-muted">{children}</div>}
+        <h2 className="font-display text-2xl font-bold">{title}</h2>
+        {children && <div className="mt-2 text-sm text-paper-muted">{children}</div>}
         <div className="mt-6 flex flex-col gap-2">{actions}</div>
       </motion.div>
     </motion.div>
@@ -55,12 +55,12 @@ export function DialogButton({
 }) {
   const cls =
     variant === 'primary'
-      ? 'bg-ink text-bg'
+      ? 'bg-paper-ink text-paper'
       : variant === 'danger'
         ? 'bg-die text-white'
-        : 'bg-surface-2 text-ink';
+        : 'bg-paper-ink/[0.07] text-paper-ink hover:bg-paper-ink/[0.12]';
   return (
-    <button type="button" onClick={onClick} className={`h-12 rounded-2xl font-semibold ${cls}`}>
+    <button type="button" onClick={onClick} className={`h-12 rounded-md font-semibold ${cls}`}>
       {children}
     </button>
   );
